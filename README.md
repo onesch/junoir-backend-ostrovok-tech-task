@@ -6,7 +6,7 @@ Source: https://solvit.space/test-tasks/30
 
 You are given a PostgreSQL table containing a list of employees, their salaries, and their departments. You need to write a query that selects the employee with the highest salary from each department. You can use a [table dump](https://drive.google.com/file/d/1RycBhOBLAyet54f3oL_WaV2OJ8wTba7L/view?pli=1) as test data; here is an example schema:
 
-```postgres
+```sql
 postgres=# \d employee
             Table "public.employee"
    Column   |         Type          | Modifiers
@@ -21,7 +21,7 @@ Indexes:
 
 If we need information about all employees earning the maximum salary in the department (in cases where the salary is the same):
 
-```postgres
+```sql
 SELECT m.name, m.department, t.mx
 FROM (
     SELECT department, max(salary) AS mx
@@ -33,7 +33,7 @@ JOIN employee m on m.department = t.department and t.mx = m.salary;
 
 If there is sufficient information about any of the employees with the highest salary:
 
-```postgres
+```sql
 SELECT DISTINCT ON (department) department, name, salary
 FROM employee
 ORDER BY department, salary DESC;
