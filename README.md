@@ -44,3 +44,44 @@ Run queries, view the result:
 ```bash
 make sql
 ```
+
+### Task 2: Smashing Wallpaper Downloader.
+
+There is a great website called Smashing Magazine that publishes excellent desktop wallpapers every month. Checking the website every month to see what is new is not the most productive task, so let's try to automate it.
+
+The goal is to write a CLI utility that downloads all wallpapers in the required resolution for a specified month and year into the user's current directory.
+
+All wallpapers can be found [here](https://www.smashingmagazine.com/category/wallpapers/), and wallpapers for May 2017 can be found [here](https://www.smashingmagazine.com/2017/04/desktop-wallpaper-calendars-may-2017/).
+
+
+## Requirements:
+
+* Python 3.5+
+* Any third-party libraries are allowed
+* Follow PEP8 style guidelines
+* If you have time, you can cover the utility with tests using `py.test` (:
+
+## Environment setup and running:
+
+Prepare the environment and install dependencies (opens a console inside the container):
+
+```bash
+make getwallpapers_env
+```
+
+Run the wallpaper download script from the previously opened console:
+
+```bash
+./getwallpapers.py 022018 640x480
+```
+
+Run tests:
+
+```bash
+make getwallpapers_test
+```
+
+## Features:
+
+* If wallpapers are available in both versions (with a calendar and without a calendar), the utility should download both versions.
+* Not all wallpapers are available in all resolutions. If a specific wallpaper does not have the requested resolution, the utility should skip it.
