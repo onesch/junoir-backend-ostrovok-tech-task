@@ -2,6 +2,9 @@
 
 import sys
 import requests
+import calendar
+import re
+from logger import logger
 
 from bs4 import BeautifulSoup
 
@@ -39,6 +42,52 @@ class Month:
         return self.month - 1
 
 
+def find_wallpaper_urls(
+        article_url: str,
+        month: Month,
+        resolutions: list[str],
+) -> list[str]:
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    response = requests.get(
+        article_url,
+        headers=headers,
+        timeout=10,
+    )
+    response.raise_for_status()
+
+    soup = BeautifulSoup(
+        response.text,
+        "html.parser"
+    )
+
+    wallpapers = []
+
+    start_url = (
+        "https://smashingmagazine.com/files/wallpapers/"
+        f"{calendar.month_name[month.month].lower()[:3]}-"
+        f"{str(month.year)[-2:]}/"
+    )
+
+    pattern = re.compile(
+        rf"^{re.escape(start_url)}"
+        rf".*-(cal|nocal)-({'|'.join(map(re.escape, resolutions))})\.[^/]+$"
+    )
+
+    for link in soup.find_all("a", href=True):
+        href = link["href"]
+
+        if (
+            pattern.match(href)
+            and href not in wallpapers
+        ):
+            wallpapers.append(href)
+
+    return wallpapers
+
+
 def find_article_url(
         category_url: str,
         month: Month,
@@ -59,6 +108,10 @@ def find_article_url(
             headers=headers,
             timeout=10,
         )
+
+        if response.status_code == 404:
+            break
+
         response.raise_for_status()
 
         soup = BeautifulSoup(
@@ -108,10 +161,13 @@ def find_article_url(
 
 
 def parse_arguments() -> tuple[Month, str]:
+    """
+    Parses command line arguments: `MMYYYY` `resolution`;
+
+    - Returns a tuple containing a Month object and a resolution string.
+    """
     if len(sys.argv) != 3:
-        print(
-            "Usage: ./getwallpapers.py MMYYYY resolution"
-        )
+        logger.error("Usage: ./getwallpapers.py MMYYYY resolution")
         sys.exit(1)
 
     month_year = sys.argv[1]
@@ -131,4 +187,15 @@ if __name__ == "__main__":
         wallpaper_month
     )
 
-    print(article_url)
+    if article_url is None:
+        logger.error("Wallpaper article not found.")
+        sys.exit(1)
+
+    wallpaper_urls = find_wallpaper_urls(
+        article_url,
+        wallpaper_month,
+        [resolution],
+    )
+
+    for url in wallpaper_urls:
+        logger.info(url)
