@@ -4,9 +4,10 @@ import sys
 import requests
 import calendar
 import re
-from logger import logger
-
 from bs4 import BeautifulSoup
+
+from logger import logger
+from arguments import parse_arguments
 
 
 class Month:
@@ -65,25 +66,39 @@ def find_wallpaper_urls(
 
     wallpapers = []
 
+    resolution_pattern = "|".join(
+        map(re.escape, resolutions)
+    )
+
+    month_full = calendar.month_name[month.month].lower()
+    month_short = calendar.month_abbr[month.month].lower()
+
     start_url = (
-        "https://smashingmagazine.com/files/wallpapers/"
-        f"{calendar.month_name[month.month].lower()[:3]}-"
-        f"{str(month.year)[-2:]}/"
+        rf"https?://(www\.)?smashingmagazine\.com/files/wallpapers/"
+        rf"({month_full}|{month_short})-"
+        rf"{str(month.year)[-2:]}/"
     )
 
     pattern = re.compile(
-        rf"^{re.escape(start_url)}"
-        rf".*-(cal|nocal)-({'|'.join(map(re.escape, resolutions))})\.[^/]+$"
+        rf"^{start_url}"
+        rf".*-(cal|nocal)-({resolution_pattern})\.[a-zA-Z0-9]+$"
     )
 
-    for link in soup.find_all("a", href=True):
+    links = soup.find_all(
+        "a",
+        href=True
+    )
+
+    for link in links:
         href = link["href"]
 
-        if (
-            pattern.match(href)
-            and href not in wallpapers
-        ):
-            wallpapers.append(href)
+        if pattern.match(href):
+            if href not in wallpapers:
+                wallpapers.append(href)
+
+    logger.info(
+        f"Found wallpapers: {len(wallpapers)}"
+    )
 
     return wallpapers
 
@@ -91,13 +106,19 @@ def find_wallpaper_urls(
 def find_article_url(
         category_url: str,
         month: Month,
-        max_pages: int = 100,  # Limit the number of pages to check
+        max_pages: int = 100,
 ) -> str | None:
+    category_url = category_url.rstrip("/")
+
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
 
+    target_year = month.article_year
+    target_month = month.article_month
+
     for page in range(1, max_pages + 1):
+
         if page == 1:
             url = category_url
         else:
@@ -118,13 +139,18 @@ def find_article_url(
             response.text,
             "html.parser"
         )
+
         articles = soup.find_all(
             "article",
             class_="article--post"
         )
 
         for article in articles:
-            time = article.find("time")
+
+            time = article.find(
+                "time",
+                class_="article--post__time"
+            )
 
             if not time:
                 continue
@@ -137,53 +163,52 @@ def find_article_url(
             published_year = int(date[:4])
             published_month = int(date[5:7])
 
-            if (
-                published_year == month.article_year
-                and published_month == month.article_month
-            ):
-                title = article.find(
-                    "h2",
-                    class_="article--post__title"
-                )
+            if published_year < target_year:
+                return None
 
-                if title:
-                    link = title.find(
-                        "a",
-                        href=True
-                    )
+            if published_year > target_year:
+                continue
 
-                    if link:
-                        return (
-                            "https://www.smashingmagazine.com"
-                            + link["href"]
-                        )
+            if published_month != target_month:
+                continue
+
+            title = article.find(
+                "h2",
+                class_="article--post__title"
+            )
+
+            if not title:
+                continue
+
+            link = title.find(
+                "a",
+                href=True
+            )
+
+            if not link:
+                continue
+
+            article_url = (
+                "https://www.smashingmagazine.com"
+                + link["href"]
+            )
+
+            logger.info(
+                f"Found article: {article_url}"
+            )
+
+            return article_url
+
     return None
 
 
-def parse_arguments() -> tuple[Month, str]:
-    """
-    Parses command line arguments: `MMYYYY` `resolution`;
-
-    - Returns a tuple containing a Month object and a resolution string.
-    """
-    if len(sys.argv) != 3:
-        logger.error("Usage: ./getwallpapers.py MMYYYY resolution")
-        sys.exit(1)
-
-    month_year = sys.argv[1]
-    resolution = sys.argv[2]
-
-    month = int(month_year[:2])
-    year = int(month_year[2:])
-
-    return Month(year, month), resolution
-
-
 if __name__ == "__main__":
-    wallpaper_month, resolution = parse_arguments()
+    year, month, resolution = parse_arguments()
+
+    wallpaper_month = Month(year, month)
 
     article_url = find_article_url(
-        "https://www.smashingmagazine.com/categories/wallpapers",
+        "https://www.smashingmagazine.com/category/wallpapers",
         wallpaper_month
     )
 
