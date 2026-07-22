@@ -5,6 +5,8 @@ import requests
 import calendar
 import re
 from bs4 import BeautifulSoup
+from pathlib import Path
+from urllib.parse import urlparse
 
 from logger import logger
 from arguments import parse_arguments
@@ -202,6 +204,56 @@ def find_article_url(
     return None
 
 
+def download_wallpapers(
+        wallpaper_urls: list[str],
+        year: int,
+        month: int,
+        output_dir: str = "wallpapers",
+) -> None:
+
+    save_dir = Path(output_dir) / str(year) / f"{month:02d}"
+
+    save_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    for url in wallpaper_urls:
+
+        filename = Path(
+            urlparse(url).path
+        ).name
+
+        filepath = save_dir / filename
+
+        if filepath.exists():
+            logger.info(
+                f"Already exists: {filepath}"
+            )
+            continue
+
+        response = requests.get(
+            url,
+            headers=headers,
+            timeout=30,
+        )
+
+        response.raise_for_status()
+
+        filepath.write_bytes(
+            response.content
+        )
+
+        logger.info(
+            f"Downloaded: {filepath}"
+        )
+
+
 if __name__ == "__main__":
     year, month, resolution = parse_arguments()
 
@@ -222,5 +274,8 @@ if __name__ == "__main__":
         [resolution],
     )
 
-    for url in wallpaper_urls:
-        logger.info(url)
+    download_wallpapers(
+        wallpaper_urls,
+        year,
+        month,
+    )
