@@ -23,9 +23,7 @@ class Month:
 
     def __init__(self, year: int, month: int):
         if not 1 <= month <= 12:
-            raise ValueError(
-                "Month must be between 1 and 12"
-            )
+            raise ValueError("Month must be between 1 and 12")
 
         self.year = year
         self.month = month
@@ -46,13 +44,11 @@ class Month:
 
 
 def find_wallpaper_urls(
-        article_url: str,
-        month: Month,
-        resolutions: list[str],
+    article_url: str,
+    month: Month,
+    resolutions: list[str],
 ) -> list[str]:
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
 
     response = requests.get(
         article_url,
@@ -61,16 +57,11 @@ def find_wallpaper_urls(
     )
     response.raise_for_status()
 
-    soup = BeautifulSoup(
-        response.text,
-        "html.parser"
-    )
+    soup = BeautifulSoup(response.text, "html.parser")
 
     wallpapers = []
 
-    resolution_pattern = "|".join(
-        map(re.escape, resolutions)
-    )
+    resolution_pattern = "|".join(map(re.escape, resolutions))
 
     month_full = calendar.month_name[month.month].lower()
     month_short = calendar.month_abbr[month.month].lower()
@@ -86,10 +77,7 @@ def find_wallpaper_urls(
         rf".*-(cal|nocal)-({resolution_pattern})\.[a-zA-Z0-9]+$"
     )
 
-    links = soup.find_all(
-        "a",
-        href=True
-    )
+    links = soup.find_all("a", href=True)
 
     for link in links:
         href = link["href"]
@@ -98,23 +86,19 @@ def find_wallpaper_urls(
             if href not in wallpapers:
                 wallpapers.append(href)
 
-    logger.info(
-        f"Found wallpapers: {len(wallpapers)}"
-    )
+    logger.info(f"Found wallpapers: {len(wallpapers)}")
 
     return wallpapers
 
 
 def find_article_url(
-        category_url: str,
-        month: Month,
-        max_pages: int = 100,
+    category_url: str,
+    month: Month,
+    max_pages: int = 100,
 ) -> str | None:
     category_url = category_url.rstrip("/")
 
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
 
     target_year = month.article_year
     target_month = month.article_month
@@ -137,22 +121,13 @@ def find_article_url(
 
         response.raise_for_status()
 
-        soup = BeautifulSoup(
-            response.text,
-            "html.parser"
-        )
+        soup = BeautifulSoup(response.text, "html.parser")
 
-        articles = soup.find_all(
-            "article",
-            class_="article--post"
-        )
+        articles = soup.find_all("article", class_="article--post")
 
         for article in articles:
 
-            time = article.find(
-                "time",
-                class_="article--post__time"
-            )
+            time = article.find("time", class_="article--post__time")
 
             if not time:
                 continue
@@ -174,30 +149,19 @@ def find_article_url(
             if published_month != target_month:
                 continue
 
-            title = article.find(
-                "h2",
-                class_="article--post__title"
-            )
+            title = article.find("h2", class_="article--post__title")
 
             if not title:
                 continue
 
-            link = title.find(
-                "a",
-                href=True
-            )
+            link = title.find("a", href=True)
 
             if not link:
                 continue
 
-            article_url = (
-                "https://www.smashingmagazine.com"
-                + link["href"]
-            )
+            article_url = "https://www.smashingmagazine.com" + link["href"]
 
-            logger.info(
-                f"Found article: {article_url}"
-            )
+            logger.info(f"Found article: {article_url}")
 
             return article_url
 
@@ -205,10 +169,10 @@ def find_article_url(
 
 
 def download_wallpapers(
-        wallpaper_urls: list[str],
-        year: int,
-        month: int,
-        output_dir: str = "wallpapers",
+    wallpaper_urls: list[str],
+    year: int,
+    month: int,
+    output_dir: str = "wallpapers",
 ) -> None:
 
     save_dir = Path(output_dir) / str(year) / f"{month:02d}"
@@ -218,23 +182,16 @@ def download_wallpapers(
         exist_ok=True,
     )
 
-
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
 
     for url in wallpaper_urls:
 
-        filename = Path(
-            urlparse(url).path
-        ).name
+        filename = Path(urlparse(url).path).name
 
         filepath = save_dir / filename
 
         if filepath.exists():
-            logger.info(
-                f"Already exists: {filepath}"
-            )
+            logger.info(f"Already exists: {filepath}")
             continue
 
         response = requests.get(
@@ -245,13 +202,9 @@ def download_wallpapers(
 
         response.raise_for_status()
 
-        filepath.write_bytes(
-            response.content
-        )
+        filepath.write_bytes(response.content)
 
-        logger.info(
-            f"Downloaded: {filepath}"
-        )
+        logger.info(f"Downloaded: {filepath}")
 
 
 if __name__ == "__main__":
@@ -260,8 +213,7 @@ if __name__ == "__main__":
     wallpaper_month = Month(year, month)
 
     article_url = find_article_url(
-        "https://www.smashingmagazine.com/category/wallpapers",
-        wallpaper_month
+        "https://www.smashingmagazine.com/category/wallpapers", wallpaper_month
     )
 
     if article_url is None:

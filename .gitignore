@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+*.pyc
 
 # Virtual env
 .venv/
@@ -12,4 +13,5 @@ __pycache__/
 
 # Dev
 TODO.md
-wallpapers/*
+wallpapers/
+.git/

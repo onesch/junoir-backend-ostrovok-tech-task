@@ -10,4 +10,4 @@ sql:
 
 getwallpapers_env:
 	docker build -t $(IMAGE_NAME) .
-	docker run --rm -it $(IMAGE_NAME) bash
+	docker run --rm -it -v $(PWD)/wallpapers:/app/wallpapers $(IMAGE_NAME) bash
