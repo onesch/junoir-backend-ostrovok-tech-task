@@ -7,6 +7,7 @@ import re
 from bs4 import BeautifulSoup
 from pathlib import Path
 from urllib.parse import urlparse
+from datetime import datetime
 
 from logger import logger
 from arguments import parse_arguments
@@ -133,12 +134,13 @@ def find_article_url(
                 continue
 
             date = time.get("datetime")
+            date_obj = datetime.strptime(date, "%Y-%m-%d")
 
             if not date:
                 continue
 
-            published_year = int(date[:4])
-            published_month = int(date[5:7])
+            published_year = date_obj.year
+            published_month = date_obj.month
 
             if published_year < target_year:
                 return None
